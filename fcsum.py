@@ -41,25 +41,10 @@ def sha512checksum(file):
             m.update(data)
         return m.hexdigest()
     print("encryption processed")
-  ## TESTING ONLY  #encrypted = hashlib.new('ripemd160')
-    #encrypted = hashlib.md5()
-    #myip="192.168.1.1"
-    #encoded=myip.encode('utf-8')
-   # encoded_ed=encrypted.update(encoded)
-    #edhex=encrypted.hexdigest()
-    #print ("encyprted",encrypted.update)
-   # ed=encrypted.digest()
-    #print ("digested",ed)
-    #print ("digested hex",edhex)
-    #print ("digested encoded", encoded_ed)
-    #print (encrypted.digest_size)
-    #print (encrypted.block_size)
 
-
-
-
+#main function to check md5 and sha512 1 or 2 files
 def main():
-
+    
     print ("Check 1 or 2 files for MD5")
     md5check=input("Number of files to check (1 or 2)?>>")
     if md5check == '1':
