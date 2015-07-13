@@ -7,7 +7,6 @@ __author__ = 'yiut'
 # Author:	   Thomas Yiu
 # Date:		   07/13/2015
 # Version:     0.1
-# Usage:  antivirus.py [signature file]
 # -----------------------------------------------------------------------------
 
 #!/usr/bin/python
@@ -20,6 +19,31 @@ from zipfile import *
 import string
 import binascii
 import fcsum
+
+def virus_signature(filename2, filename):
+    virussig=[]
+    #string="58354f2150254041505b345c505a58353428505e2937434329377d2445494341522d5354414e4441"
+    try:
+        with open(filename) as fhand2:
+            for line2 in fhand2:
+                data=line2
+                print("Virus:", data)
+               # print(data)
+        with open(filename2) as fhand:
+            for line1 in fhand:
+                virussig.append(line1)
+        #print(virussig)
+        length=len(virussig)
+        print("# of virus signatures, ", length)
+        for i in range(0,length):
+            if data in virussig[i]:
+                print ("Eicar Test Virus Detected")
+
+    except FileNotFoundError:
+        print('Filename: ' + filename + ' is not valid')
+        exit()
+
+
 
 def scanner(signature):
     signature.replace(" ","")
@@ -46,6 +70,7 @@ def main():
     string="58 35 4F 21 50 25 40 41 50 5B 34 5C 50 5A 58 35 34 28 50 5E 29 37 43 43 29 37 7D 24 45 49 43 41 52 2D 53 54 41 4E 44 41 52 44 2D 41 4E 54 49 56 49 52 55 53 2D 54 45 53 54 2D 46 49 4C 45 21 24 48 2B 48 2A"
     #print("String of eicar", string.replace(" ", ""))
     eicar_check="cc805d5fab1fd71a4ab352a9c533e65fb2d5b885518f4e565e68847223b8e6b85cb48f3afad842726d99239c9e36505c64b0dc9a061d9e507d833277ada336ab"
+
 
     if is_zipfile(filename):
         print("valid zip file")
@@ -76,8 +101,9 @@ def main():
 
 
 if __name__ == '__main__':
-    if len(sys.argv) == 2:
+    if len(sys.argv) == 3:
         filename = sys.argv[1]
-        main()
+        filename2 = sys.argv[2]
+        virus_signature(filename, filename2)
     else:
-        print('\nUsage:  antivirus [signature file]')
+        print('\nUsage:  antivirus [virus file] [signature file]')
