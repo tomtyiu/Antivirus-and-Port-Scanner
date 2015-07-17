@@ -2,11 +2,11 @@ __author__ = 'yiut'
 # -*- coding: Non-UTF-8 -*-
 # -----------------------------------------------------------------------------
 # Name:        Virus scanner, tested with Eicar with sha512 checksum scan
-# Purpose:	   Simpmle Virus scanner, test with Eicar
+# Purpose:	   Simple Virus scanner, test with Eicar
 #
 # Author:	   Thomas Yiu
-# Date:		   07/13/2015
-# Version:     0.1
+# Date:		   07/17/2015
+# Version:     0.4
 # -----------------------------------------------------------------------------
 
 # !/usr/bin/python
@@ -29,6 +29,7 @@ import signature_functions
 import binhex
 import binascii
 
+DetectFound="Eicar Test Sigature found!! Your PC has been infected by Malware or unwanted program"
 # A 256 bit (32 byte) key
 key = bytes("This_key_for_demo_purposes_only!", 'utf-8')
 
@@ -60,47 +61,52 @@ def parseCmdLineArgs(argv, argc):
     global encryptf
     global readfile
     global decryptf
+    global filename3 # decrypt filename
 
     lineout = "-----------------------------------------------------------------------------\n" + \
-              "Antivirus program " + "\n"\
+              "HP Antivirus program " + "\n"\
+              "EICAR detection test project" + "\n"\
               "-----------------------------------------------------------------------------"
+    print(lineout)
     parser = argparse.ArgumentParser(description=lineout, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('infiles', nargs='*', type=str, help='Input one or more data segment files\n')
     parser.add_argument('-f', '--fvirussig', nargs='?', metavar="FILE", help="Virus signature file", required=False)
     parser.add_argument('-vt', '--virustestfile', nargs='?', metavar="FILE", help="Virus signature file", required=False)
     parser.add_argument('-p', '--path', nargs='?', metavar="FILE", help="path of files to search", required=False)
     parser.add_argument('-e', '--encrypt', nargs='?', metavar="FILE", help="encrypt virus file to test", required=False)
-    parser.add_argument('-d', '--decrypt', nargs='?', metavar="FILE", help="dec virus file to test", required=False)
+    parser.add_argument('-d', '--decrypt', nargs='?', metavar="FILE", help="Decrypt virus file to test", required=False)
     g_args = parser.parse_args()
-
-    # Invoke logger
-    # log = logClass(g_isDebug, g_isVerbose)
-    # log.debug("g_isDebug=%d", g_isDebug)
-    # log.debug("g_isVerbose=%d", g_isVerbose)
 
     if argc == 1:
         parser.print_help()
         exit()
+
     if g_args.fvirussig:
         filename2 = g_args.fvirussig
-        #   log.debug("filesname2=%s", filename2)
+
     if g_args.virustestfile:
         filename = g_args.virustestfile
-        #  log.debug("filesname=%s", filename)
+        if os.path.isfile(filename):
+            virus_signature(filename2, filename)
+        else:
+            print("File not found")
     if g_args.path:
         directory = g_args.path
-        directory_scanner(directory, filename2)
+        if os.path.isdir(directory):
+            directory_scanner(directory, filename2)
+        else:
+            print("Directory not found")
     if g_args.encrypt:
         #encryptf: decrypt file name
-        encryptf=g_args.encrypt
-        #   encdecfunc.enc_openssl(filename, encryptf)
+        #encryptf=g_args.encrypt
+        encdecfunc.enc_openssl(filename, encryptf)
     if g_args.decrypt:
         #decryptf: decrypt file name
+        #filename3=g_args.decrypt
         decryptf=g_args.decrypt
-        #encdecfunc.dec_openssl(filename, decryptf)
-
-    virus_signature(filename2, filename)
-
+        encdecfunc.dec_openssl(decryptf, 'vir_sig.txt')
+        print("Decrypt file: vir_sig.txt")
+    #encdecfunc.dec_openssl()
 
 def writefile_replace(filename, writefilename):
     try:
@@ -179,6 +185,8 @@ def directory_scanner(directory, filename2):
     count = 0
     virussig = []
     filedata=[]
+    #@directory2=list_directory(directory)
+    #print("Directory path:", directory2)
     filesindirectory = list_files(directory)
     print("Scanning files in directory:", filesindirectory)
     lengthdirectory = len(filesindirectory)
@@ -202,7 +210,7 @@ def directory_scanner(directory, filename2):
                     data2=data.decode('utf-8')
                     print(data2)
                     v=signature_functions.find_dict(str(data2),dictionary,signature_functions.le(dictionary))
-                    print("Found:",v)
+                    print("\n Eicar Test Sigature found!! Your PC has been infected by Malware or unwanted program:",v)
     except FileNotFoundError:
         print(filesindirectory, "error")
 
@@ -217,6 +225,7 @@ def virussig_parse(virussig, length):
 
 
 def virus_signature(filename2, filename):
+    dictionary=signature_functions.dictfile(filename2, 'Virus Signature')
     # filename2: virus signature;  filename= infected files
     testkey = "Eicar-Test-Signature"
     testsig = "=58354f2150254041505b345c505a58353428505e2937434329377d2445494341522d5354414e4441"
@@ -234,21 +243,12 @@ def virus_signature(filename2, filename):
                 virussig.append(line1)
         with open(filename) as fhand2:
             for line2 in fhand2:
-                data = line2
-                # print(data)
-                for i in range(0, len(virussig)):
-                    if data in virussig[i]:
-                        print("Virus Detected with line virus scan test")
-                filedata = data.partition("=")
-        # filedata.append(data)
-        print("test: filedata", filedata)
-        # print(virussig)
-        length = len(virussig)
-        print("# of virus signatures, ", length)
-        sig = virussig_parse(virussig, length)
-        for x in range(0, len(sig)):
-            if testsig in sig[x]:
-                print("found virus in virus signature function: ", sig[x])
+                data=data_hex(line2)
+                #print(data)
+                data2=data.decode('utf-8')
+                print(data2)
+                v=signature_functions.find_dict(str(data2),dictionary,signature_functions.le(dictionary))
+                print('\n',DetectFound, v)
     except FileNotFoundError:
         print('Filename: ' + filename + ' is not valid')
         exit()
@@ -272,6 +272,12 @@ def list_files(path):
             files.append(name)
     return files
 
+def list_directory(path):
+    directory=[]
+    for name in os.listdir(path):
+        if os.path.isfile(os.path.join(path, name)):
+            files.append(name)
+    return directory
 
 def scanner(signature):
     signature.replace(" ", "")
@@ -285,14 +291,6 @@ def scanner(signature):
         print("Detection type: Test", "\n")
     else:
         print("Error")
-    string = signature
-    # print("Signature leng h",signature.count())
-    # match=string.find(signature,"EICAR")
-    # if match:
-    #    return signature
-    # else:
-    #    return
-
 
 def encryptfile(filename):
     """
@@ -332,26 +330,6 @@ def aesfunc(filename):
     # filename is virus file
     writefile('enceicar.bin', 'enceicar2.bin')
     writefile_replace('encrypted_eicar_hex.txt', 'encrypted_eicar_hex_signature.txt')
-    # writefile('enceicar2.bin', )
-    # file_hex('eicar.com','test.txt')
-    # decryptfile()
-    # plaintext = bytes("TextMustBe16Byte", 'utf-8') test only
-    # ciphertext = aes.encrypt(plaintext)
-
-
-    # '\xd6:\x18\xe6\xb1\xb3\xc3\xdc\x87\xdf\xa7|\x08{k\xb6'
-    # print(repr(ciphertext))
-
-
-    # The cipher-block chaining mode of operation maintains state, so
-    # decryption requires a new instance be created
-    # aes = pyaes.AESModeOfOperationCBC(key, iv = iv)
-    # decrypted = aes.decrypt(ciphertext)
-
-    # True
-    # print(decrypted == plaintext)
-
-#def main(**kwargs):
 
 
 if __name__ == '__main__':
