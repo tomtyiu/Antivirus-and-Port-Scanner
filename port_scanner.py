@@ -10,9 +10,24 @@ __author__ = 'yiut'
 # ---------------------------
 import socket, sys
 from struct import *
+import time
+import os
+
+from multiprocessing import Process, Queue, current_process, freeze_support
+from multiprocessing import Pool, Lock, Process, queues
+import multiprocessing as mp
+from multiprocessing.connection import wait
+
+import logging
 
 #set flag for continous mode or single data mode
 flags=[0,1]
+def info(title):
+    print(title)
+    print('module name:', __name__)
+    if hasattr(os, 'getppid'):  # only available on Unix
+        print('parent process:', os.getppid())
+    print('process id:', os.getpid())
 
 def port_sniff(flags):
     print("-------------------Port Sniffer-----------------")
@@ -140,31 +155,55 @@ def port_sniff(flags):
     # disabled promiscuous mode
     sock.ioctl(socket.SIO_RCVALL, socket.RCVALL_OFF)
 
+def TCP_scan(port):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM,socket.IPPROTO_IP)
+    socket.create_connection(('127.0.0.1','80'))
+    result = sock.connect_ex(('127.0.0.1',port))
+    if port == 22:
+        print("SSH port \n")
+    if port == 20:
+        print("FTP port \n")
+    if port == 80:
+        print("HTTP port \n")
+    if result == 0:
+      print("TCP Port {}: \t Open".format(port))
+      # print("Port is open", port)
+    else:
+       print("TCP Port {}: \t not Open".format(port))
+
+def UDP_scan(port):
+    sock2= socket.socket(socket.AF_INET, socket.SOCK_DGRAM,socket.IPPROTO_IP)
+    socket.create_connection(('127.0.0.1',80))
+    result = sock2.connect_ex(('127.0.0.1',port))
+    if port == 22:
+        print("SSH port \n")
+    if port == 20:
+        print("FTP port \n")
+    if port == 80:
+        print("HTTP port \n")
+
+    if result == 0:
+      print("UDP Port {}: \t Open".format(port))
+      # print("Port is open", port)
+    else:
+       print("UDP Port {}: \t not Open".format(port))
+
 #scans ports from start to end
 def porttest(start,end):
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM,socket.IPPROTO_IP)
-    sock2= socket.socket(socket.AF_INET, socket.SOCK_DGRAM,socket.IPPROTO_IP)
-
-
+    mp.set_start_method('spawn')
+    task_queue=Queue()
+    done_task=Queue()
     print("-------------------Port testing-----------------")
     print("Localhost port: 127.0.0.1")
     print("Scanning ports..", start, " to ", end)
-    socket.create_connection(('127.0.0.1',80))
-
-    #port = 100
+    print("Parallel processing started.")
     for port in range(start,end):
-        result = sock.connect_ex(('127.0.0.1',port))
-        result2= sock2.connect_ex(('127.0.0.1',port))
-        if result == 0:
-          print("TCP Port {}: \t Open:".format(port))
-          # print("Port is open", port)
-        else:
-           print("TCP Port {}: \t not Open:".format(port))
-        if result2 ==0:
-            print("UDP Port {}: \t Open:".format(port))
-        else:
-            print("UDP Port {}: \t not Open:".format(port))
-
+        p1=mp.Process(target=TCP_scan, args=(port,))
+        p1.start()
+        p1.join()
+        p2=mp.Process(target=UDP_scan, args=(port,))
+        p2.start()
+        p2.join()
     #socket.close()
 
 #more port scanner; only for testing purposes or penetration testing
@@ -189,10 +228,13 @@ def porttestremote(remoteip, start,end):
 
 #testing purposes
 if __name__ == '__main__':
+    freeze_support()
+    info('main line')
     port_sniff(0)
     #remoteip=input("Remote IP address: ")
-    #start=int(input("Start port: "))
-    #end=int(input("End port: "))
+    start=int(input("Start port: "))
+    end=int(input("End port: "))
     #print("-" * 60)
     #porttestremote(remoteip,start,end)
-    porttest(0,1024)
+    porttest(start,end)
+
