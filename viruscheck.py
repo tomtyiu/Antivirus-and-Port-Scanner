@@ -1,12 +1,12 @@
 __author__ = 'yiut'
 # -*- coding: Non-UTF-8 -*-
 # -----------------------------------------------------------------------------
-# Name:        Virus scanner, tested with Eicar with sha512 checksum scan
-# Purpose:	   Simple Virus scanner, test with Eicar
+# Name:        Virus scanner and Port Scanner
+# Purpose:	   Simple Virus scanner, test with Eicar; Port Scanner and Port Sniffer
 #
 # Author:	   Thomas Yiu
-# Date:		   07/17/2015
-# Version:     0.4
+# Date:		   07/21/2015
+# Version:     0.5
 # -----------------------------------------------------------------------------
 
 # !/usr/bin/python
@@ -28,6 +28,9 @@ import encdecfunc
 import signature_functions
 import binhex
 import binascii
+import pathfinder
+import hex_file
+import port_scanner
 
 DetectFound="Eicar Test Sigature found!! Your PC has been infected by Malware or unwanted program"
 # A 256 bit (32 byte) key
@@ -38,8 +41,6 @@ key = bytes("This_key_for_demo_purposes_only!", 'utf-8')
 iv = "InitializationVe"
 
 valid_options = ['-p', '-f']
-def data_hex(line):
-    return binascii.hexlify(line.encode('utf-8'))
 
 def typenamefunction(signature):
     virussig=[]
@@ -72,9 +73,11 @@ def parseCmdLineArgs(argv, argc):
     parser.add_argument('infiles', nargs='*', type=str, help='Input one or more data segment files\n')
     parser.add_argument('-f', '--fvirussig', nargs='?', metavar="FILE", help="Virus signature file", required=False)
     parser.add_argument('-vt', '--virustestfile', nargs='?', metavar="FILE", help="Virus signature file", required=False)
-    parser.add_argument('-p', '--path', nargs='?', metavar="FILE", help="path of files to search", required=False)
+    parser.add_argument('-dir', '--directory', nargs='?', metavar="FILE", help="path of files to search", required=False)
     parser.add_argument('-e', '--encrypt', nargs='?', metavar="FILE", help="encrypt virus file to test", required=False)
     parser.add_argument('-d', '--decrypt', nargs='?', metavar="FILE", help="Decrypt virus file to test", required=False)
+    parser.add_argument('-p', '--port', dest="port", metavar="PORT", help="Port scannner for server", required=False)
+    parser.add_argument('-s', '--sniff', dest='sniff', metavar='sniff', help='Port Sniffer mode', required=False)
     g_args = parser.parse_args()
 
     if argc == 1:
@@ -83,6 +86,8 @@ def parseCmdLineArgs(argv, argc):
 
     if g_args.fvirussig:
         filename2 = g_args.fvirussig
+    else:
+        pass
 
     if g_args.virustestfile:
         filename = g_args.virustestfile
@@ -90,12 +95,18 @@ def parseCmdLineArgs(argv, argc):
             virus_signature(filename2, filename)
         else:
             print("File not found")
-    if g_args.path:
-        directory = g_args.path
+    else:
+        pass
+
+    if g_args.directory:
+        directory = g_args.directory
         if os.path.isdir(directory):
             directory_scanner(directory, filename2)
         else:
             print("Directory not found")
+    else:
+        pass
+
     if g_args.encrypt:
         #encryptf: decrypt file name
         #encryptf=g_args.encrypt
@@ -106,6 +117,17 @@ def parseCmdLineArgs(argv, argc):
         decryptf=g_args.decrypt
         encdecfunc.dec_openssl(decryptf, 'vir_sig.txt')
         print("Decrypt file: vir_sig.txt")
+
+    if g_args.port:
+        port=g_args.port
+        #assert isinstance(port, object)
+        port_scanner.porttest(0,int(port))
+
+    if g_args.sniff:
+        sniffer=g_args.sniff
+        port_scanner.port_sniff(1)
+
+
     #encdecfunc.dec_openssl()
 
 def writefile_replace(filename, writefilename):
@@ -187,7 +209,11 @@ def directory_scanner(directory, filename2):
     filedata=[]
     #@directory2=list_directory(directory)
     #print("Directory path:", directory2)
-    filesindirectory = list_files(directory)
+    name='*.txt'
+    filesindirectory = list_directory(directory)
+
+    #finddir=pathfinder.pathfind(directory)
+
     print("Scanning files in directory:", filesindirectory)
     lengthdirectory = len(filesindirectory)
     print("# files in directory", lengthdirectory)
@@ -205,7 +231,7 @@ def directory_scanner(directory, filename2):
         for i in range(0,lengthdirectory):
             with open(filesindirectory[i],'rt', encoding='utf-8') as fhand:
                 for line1 in fhand:
-                    data=data_hex(line1)
+                    data=hex_file.data_hex(line1)
                     #print(data)
                     data2=data.decode('utf-8')
                     print(data2)
@@ -243,7 +269,7 @@ def virus_signature(filename2, filename):
                 virussig.append(line1)
         with open(filename) as fhand2:
             for line2 in fhand2:
-                data=data_hex(line2)
+                data=hex_file.data_hex(line2)
                 #print(data)
                 data2=data.decode('utf-8')
                 print(data2)
@@ -259,7 +285,8 @@ def find_file(path,filename):
         if files[f] in filesname:
             print("File found:",files[f])
 
-def list_files(path):
+#path of list files;  files not to check
+def list_files(path,name):
     # returns a list of names (with extension, without full path) of all files
     # in folder path
     """
@@ -276,7 +303,7 @@ def list_directory(path):
     directory=[]
     for name in os.listdir(path):
         if os.path.isfile(os.path.join(path, name)):
-            files.append(name)
+            directory.append(name)
     return directory
 
 def scanner(signature):
