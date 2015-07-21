@@ -1,8 +1,8 @@
 __author__ = 'yiut'
 # -*- coding: Non-UTF-8 -*-
 # -----------------------------------------------------------------------------
-# Name:        Virus scanner and Port Scanner
-# Purpose:	   Simple Virus scanner, test with Eicar; Port Scanner and Port Sniffer
+# Name:        Virus scanner, tested with Eicar with sha512 checksum scan
+# Purpose:	   Simple Virus scanner, test with Eicar
 #
 # Author:	   Thomas Yiu
 # Date:		   07/21/2015
@@ -78,6 +78,8 @@ def parseCmdLineArgs(argv, argc):
     parser.add_argument('-d', '--decrypt', nargs='?', metavar="FILE", help="Decrypt virus file to test", required=False)
     parser.add_argument('-p', '--port', dest="port", metavar="PORT", help="Port scannner for server", required=False)
     parser.add_argument('-s', '--sniff', dest='sniff', metavar='sniff', help='Port Sniffer mode', required=False)
+    parser.add_argument('-V', '--Version', action='version', version='%(prog)s v0.5')
+    parser.add_argument('-v', '--verbose', action='count', help="Enable verbose output")
     g_args = parser.parse_args()
 
     if argc == 1:
