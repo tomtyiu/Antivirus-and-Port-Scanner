@@ -6,7 +6,7 @@ __author__ = 'yiut'
 #
 # Author:	   Thomas Yiu
 # Date:		   07/21/2015
-# Version:     0.5
+# Version:     0.6
 # -----------------------------------------------------------------------------
 
 # !/usr/bin/python
@@ -31,6 +31,7 @@ import binascii
 import pathfinder
 import hex_file
 import port_scanner
+import multiprocess_antivirus
 
 DetectFound="Eicar Test Sigature found!! Your PC has been infected by Malware or unwanted program"
 # A 256 bit (32 byte) key
@@ -63,6 +64,7 @@ def parseCmdLineArgs(argv, argc):
     global readfile
     global decryptf
     global filename3 # decrypt filename
+    global multi
 
     lineout = "-----------------------------------------------------------------------------\n" + \
               "HP Antivirus program " + "\n"\
@@ -77,7 +79,8 @@ def parseCmdLineArgs(argv, argc):
     parser.add_argument('-e', '--encrypt', nargs='?', metavar="FILE", help="encrypt virus file to test", required=False)
     parser.add_argument('-d', '--decrypt', nargs='?', metavar="FILE", help="Decrypt virus file to test", required=False)
     parser.add_argument('-p', '--port', dest="port", metavar="PORT", help="Port scannner for server", required=False)
-    parser.add_argument('-s', '--sniff', dest='sniff', metavar='sniff', help='Port Sniffer mode', required=False)
+    parser.add_argument('-s', '--sniff', dest='sniff', metavar='sniff', help='Port Sniffer mode: (1== realtime) (0==single entry)', required=False)
+    parser.add_argument('-m', '--multi', nargs='?', metavar="FILE", help="Multiprocessing mode", required=False)
     parser.add_argument('-V', '--Version', action='version', version='%(prog)s v0.5')
     parser.add_argument('-v', '--verbose', action='count', help="Enable verbose output")
     g_args = parser.parse_args()
@@ -126,9 +129,12 @@ def parseCmdLineArgs(argv, argc):
         port_scanner.porttest(0,int(port))
 
     if g_args.sniff:
-        sniffer=g_args.sniff
-        port_scanner.port_sniff(1)
+        sniff=g_args.sniff
+        port_scanner.port_sniff(int(sniff))
 
+    if g_args.multi:
+        multi=g_args.multi
+        multiprocess_antivirus.procedure(multi, directory, filename2)
 
     #encdecfunc.dec_openssl()
 
@@ -232,6 +238,10 @@ def directory_scanner(directory, filename2):
     try:
         for i in range(0,lengthdirectory):
             with open(filesindirectory[i],'rt', encoding='utf-8') as fhand:
+                if filesindirectory[i]=='antivirus.py':
+                    pass
+                if filesindirectory[i]=='virus_signature.txt':
+                    pass
                 for line1 in fhand:
                     data=hex_file.data_hex(line1)
                     #print(data)
