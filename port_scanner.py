@@ -17,8 +17,8 @@ flags=[0,1]
 def port_sniff(flags):
     print("-------------------Port Sniffer-----------------")
     HOST = socket.gethostbyname(socket.gethostname())
-
-    #SOCK_STREAM -> SOCK_RAW
+    print("HOST: ",HOST)
+    #SOCK_STREAM -> SOC K_RAW
     #Create an INET and RAW socket
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_RAW,socket.IPPROTO_IP)
@@ -38,14 +38,103 @@ def port_sniff(flags):
     #flag =0 shows only one package
     if flags==0:
         # receive a package
-        package=sock.recvfrom(65565)
-        print(package)
-        print(sock.recv(65565))
+        packet = sock.recvfrom(65565)
+
+        #packet string from tuple
+        packet = packet[0]
+
+        #take first 20 characters for the ip header
+        ip_header = packet[0:20]
+
+        #now unpack them :)
+        iph = unpack('!BBHHHBBH4s4s' , ip_header)
+
+        version_ihl = iph[0]
+        version = version_ihl >> 4
+        ihl = version_ihl & 0xF
+
+        iph_length = ihl * 4
+
+        ttl = iph[5]
+        protocol = iph[6]
+        s_addr = socket.inet_ntoa(iph[8]);
+        d_addr = socket.inet_ntoa(iph[9]);
+
+        print('Version : ' + str(version) + ' IP Header Length : ' + str(ihl) + ' TTL : ' + str(ttl) + ' Protocol : ' + str(protocol) + ' Source Address : ' + str(s_addr) + ' Destination Address : ' + str(d_addr))
+
+        tcp_header = packet[iph_length:iph_length+20]
+
+        #now unpack them :)
+        tcph = unpack('!HHLLBBHHH' , tcp_header)
+
+        source_port = tcph[0]
+        dest_port = tcph[1]
+        sequence = tcph[2]
+        acknowledgement = tcph[3]
+        doff_reserved = tcph[4]
+        tcph_length = doff_reserved >> 4
+
+        print('Source Port : ' + str(source_port) + ' Dest Port : ' + str(dest_port) + ' Sequence Number : ' + str(sequence) + ' Acknowledgement : ' + str(acknowledgement) + ' TCP header length : ' + str(tcph_length))
+
+        h_size = iph_length + tcph_length * 4
+        data_size = len(packet) - h_size
+
+        #get data from the packet
+        data = packet[h_size:]
+
+        print('Data : ' + str(data))
+
+
+       # print(sock.recv(65565))
+
     # flag=1 realtime, continous mode
     if flags==1:
         while True:
-            package=sock.recvfrom(65565)
-            print(package)
+            packet = sock.recvfrom(65565)
+
+            #packet string from tuple
+            packet = packet[0]
+
+            #take first 20 characters for the ip header
+            ip_header = packet[0:20]
+
+            #now unpack them :)
+            iph = unpack('!BBHHHBBH4s4s' , ip_header)
+
+            version_ihl = iph[0]
+            version = version_ihl >> 4
+            ihl = version_ihl & 0xF
+
+            iph_length = ihl * 4
+
+            ttl = iph[5]
+            protocol = iph[6]
+            s_addr = socket.inet_ntoa(iph[8]);
+            d_addr = socket.inet_ntoa(iph[9]);
+
+            print('Version : ' + str(version) + ' IP Header Length : ' + str(ihl) + ' TTL : ' + str(ttl) + ' Protocol : ' + str(protocol) + ' Source Address : ' + str(s_addr) + ' Destination Address : ' + str(d_addr))
+
+            tcp_header = packet[iph_length:iph_length+20]
+
+            #now unpack them :)
+            tcph = unpack('!HHLLBBHHH' , tcp_header)
+
+            source_port = tcph[0]
+            dest_port = tcph[1]
+            sequence = tcph[2]
+            acknowledgement = tcph[3]
+            doff_reserved = tcph[4]
+            tcph_length = doff_reserved >> 4
+
+            print('Source Port : ' + str(source_port) + ' Dest Port : ' + str(dest_port) + ' Sequence Number : ' + str(sequence) + ' Acknowledgement : ' + str(acknowledgement) + ' TCP header length : ' + str(tcph_length))
+
+            h_size = iph_length + tcph_length * 4
+            data_size = len(packet) - h_size
+
+            #get data from the packet
+            data = packet[h_size:]
+
+            print('Data : ' + str(data))
 
     # disabled promiscuous mode
     sock.ioctl(socket.SIO_RCVALL, socket.RCVALL_OFF)
@@ -62,13 +151,39 @@ def porttest(start,end):
     for port in range(start,end):
         result = sock.connect_ex(('127.0.0.1',port))
         if result == 0:
-           print("Port is open", port)
+          print("Port {}: \t Open:".format(port))
+          # print("Port is open", port)
         else:
-           print("Port is not open", port )
+           print("Port {}: \t Open:".format(port))
+
     #socket.close()
 
+#more port scanner; only for testing purposes or penetration testing
+def porttestremote(remoteip, start,end):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_RAW,socket.IPPROTO_IP)
+    print("-------------------Port testing-----------------")
+    #print("Localhost port: 127.0.0.1")
+    rserverip=socket.gethostbyname(remoteip)
+    print("Max port# can not exceed 65536")
+    print("Connecting to:", rserverip)
+    print("Scanning ports..", start, " to ", end)
+    socket.create_connection((rserverip,80))
+
+    #port = 100
+    for port in range(start,end):
+        result = sock.connect_ex((rserverip,port))
+        if result == 0:
+           print("Port {}: \t Open".format(port))
+        else:
+           print("Port {}: \t Not Open".format(port))
+    #socket.close()
 
 #testing purposes
 if __name__ == '__main__':
-    port_sniff(0)
-    porttest(0,200)
+    port_sniff(1)
+    #remoteip=input("Remote IP address: ")
+    #start=int(input("Start port: "))
+    #end=int(input("End port: "))
+    #print("-" * 60)
+    #porttestremote(remoteip,start,end)
+    porttest(0,1024)
