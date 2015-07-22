@@ -6,7 +6,7 @@ __author__ = 'yiut'
 #
 # Author:	   Thomas Yiu
 # Date:		   07/21/2015
-# Version:     0.6
+# Version:     0.5
 # -----------------------------------------------------------------------------
 
 # !/usr/bin/python
@@ -214,6 +214,7 @@ def directory_scanner(directory, filename2):
     print(lineout)
     count = 0
     virussig = []
+    quarantine=[]
     filedata=[]
     #@directory2=list_directory(directory)
     #print("Directory path:", directory2)
@@ -246,9 +247,16 @@ def directory_scanner(directory, filename2):
                     data=hex_file.data_hex(line1)
                     #print(data)
                     data2=data.decode('utf-8')
-                    print(data2)
+                    #print(data2)
                     v=signature_functions.find_dict(str(data2),dictionary,signature_functions.le(dictionary))
-                    print("\n Eicar Test Sigature found!! Your PC has been infected by Malware or unwanted program:",v)
+                    if v:
+                        print("\n Eicar Test Sigature found!! Your PC has been infected by Malware or unwanted program:",v, "",filesindirectory[i])
+                    if v:
+                        removefile=input("Do you want to remove infected file: (Yes/No)")
+                        if removefile=="Yes":
+                            os.remove(filesindirectory[i])
+                        else:
+                            continue
     except FileNotFoundError:
         print(filesindirectory, "error")
 
