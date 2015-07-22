@@ -2,7 +2,7 @@ __author__ = 'yiut'
 
 #polymophic eicar virus example
 #use for polymophic virus for antivirus testing
-#© 1998-2015 · EICAR - European Institute for Computer Anti-Virus Research eicar file
+## European Institute for Computer Anti-Virus Research eicar file
 
 import hex_file
 import math
@@ -16,7 +16,6 @@ def random_key():
     return a
 
 def manipulator(code, enc_code):
-    enc_code=random_key()
     hex_eicar=hex_file.data_hex(code).decode('utf-8')
     #print("Hex:", hex_eicar)
 
@@ -30,8 +29,7 @@ def manipulator(code, enc_code):
     return unhex_eicar
 
 def polymorphic_function():
-    enc_code=1
-    enc_code=int(enc_code)
+    enc_code=random_key()
     eicar_code1="X5O!P%@AP[4\PZX54(P^)7CC)7}$"
     eicar_code2="EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"
     eicar_code3=eicar_code1+eicar_code2
