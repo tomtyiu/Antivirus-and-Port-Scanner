@@ -32,6 +32,8 @@ import pathfinder
 import hex_file
 import port_scanner
 import multiprocess_antivirus
+import logging
+import logging.config
 
 DetectFound="Eicar Test Sigature found!! Your PC has been infected by Malware or unwanted program"
 # A 256 bit (32 byte) key
@@ -42,6 +44,33 @@ key = bytes("This_key_for_demo_purposes_only!", 'utf-8')
 iv = "InitializationVe"
 
 valid_options = ['-p', '-f']
+
+def logs():
+    # create logger
+    logging.basicConfig(filename='main_antivirus.log',level=logging.DEBUG)
+    logger = logging.getLogger('simple_example')
+    logging.config.fileConfig('logging.conf')
+    logger.setLevel(logging.DEBUG)
+
+    # create console handler and set level to debug
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.DEBUG)
+
+    # create formatter
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+    # add formatter to ch
+    ch.setFormatter(formatter)
+
+    # add ch to logger
+    logger.addHandler(ch)
+
+    # 'application' code
+    logger.debug('debug message')
+    logger.info('info message')
+    logger.warn('warn message')
+    logger.error('error message')
+    logger.critical('critical message')
 
 def typenamefunction(signature):
     virussig=[]
@@ -65,6 +94,7 @@ def parseCmdLineArgs(argv, argc):
     global decryptf
     global filename3 # decrypt filename
     global multi
+    global check
 
     lineout = "-----------------------------------------------------------------------------\n" + \
               "HP Antivirus program " + "\n"\
@@ -72,6 +102,7 @@ def parseCmdLineArgs(argv, argc):
               "-----------------------------------------------------------------------------"
     print(lineout)
     parser = argparse.ArgumentParser(description=lineout, formatter_class=argparse.RawTextHelpFormatter)
+    group = parser.add_mutually_exclusive_group()
     parser.add_argument('infiles', nargs='*', type=str, help='Input one or more data segment files\n')
     parser.add_argument('-f', '--fvirussig', nargs='?', metavar="FILE", help="Virus signature file", required=False)
     parser.add_argument('-vt', '--virustestfile', nargs='?', metavar="FILE", help="Virus signature file", required=False)
@@ -79,10 +110,13 @@ def parseCmdLineArgs(argv, argc):
     parser.add_argument('-e', '--encrypt', nargs='?', metavar="FILE", help="encrypt virus file to test", required=False)
     parser.add_argument('-d', '--decrypt', nargs='?', metavar="FILE", help="Decrypt virus file to test", required=False)
     parser.add_argument('-p', '--port', dest="port", metavar="PORT", help="Port scannner for server", required=False)
+    parser.add_argument('-c', '--check', dest="check", metavar="CHECK", help="Port check for server", required=False)
     parser.add_argument('-s', '--sniff', dest='sniff', metavar='sniff', help='Port Sniffer mode: (1== realtime) (0==single entry)', required=False)
     parser.add_argument('-m', '--multi', nargs='?', metavar="FILE", help="Multiprocessing mode", required=False)
     parser.add_argument('-V', '--Version', action='version', version='%(prog)s v0.5')
-    parser.add_argument('-v', '--verbose', action='count', help="Enable verbose output")
+    group.add_argument('-v', '--verbose', action='count', help="increase output verbose level")
+    assert isinstance(group.add_argument, object)
+    group.add_argument('-q', '--quiet', action='store_true', help="Quiet all output level")
     g_args = parser.parse_args()
 
     if argc == 1:
@@ -106,7 +140,8 @@ def parseCmdLineArgs(argv, argc):
     if g_args.directory:
         directory = g_args.directory
         if os.path.isdir(directory):
-            directory_scanner(directory, filename2)
+            q=directory_scanner(directory, filename2)
+            print("Files Quarantined",q)
         else:
             print("Directory not found")
     else:
@@ -135,6 +170,12 @@ def parseCmdLineArgs(argv, argc):
     if g_args.multi:
         multi=g_args.multi
         multiprocess_antivirus.procedure(multi, directory, filename2)
+
+    if g_args.verbose:
+        print("vervose turn on")
+
+    if g_args.check:
+        port_scanner.port_check()
 
     #encdecfunc.dec_openssl()
 
@@ -256,7 +297,10 @@ def directory_scanner(directory, filename2):
                         if removefile=="Yes":
                             os.remove(filesindirectory[i])
                         else:
+                            print("File will be quarantined")
+                            quarantine.append(filesindirectory[i])
                             continue
+        return quarantine
     except FileNotFoundError:
         print(filesindirectory, "error")
 
