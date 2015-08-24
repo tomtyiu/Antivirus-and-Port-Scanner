@@ -1,0 +1,343 @@
+# author=Thomas Yiu
+# Simulation of random genetic mutation generator of eicar files for virus classifications
+# Naive Bayes
+import os
+import sys
+import math
+import random
+import random
+from simpleai.machine_learning import DecisionTreeLearner_LargeData, \
+                                      ClassificationProblem, Attribute, \
+                                      precision, NaiveBayes
+from simpleai.machine_learning.classifiers import tree_to_str
+
+import binascii
+from simpleai.search import SearchProblem, astar
+from simpleai.search import models, local
+import dis
+import operator
+from decimal import *
+import numpy as np
+import random
+import re
+from learning import *
+
+
+BASE_PATH = os.path.dirname(os.path.abspath(__file__))
+
+# ["data/train/ham/ham%d" % i for i in range(1, 11)]
+GOAL = "C:/Users/yiut/Downloads/simpleai-master/simpleai-master/samples/test/eicar.com.txt"
+INITIAL = "C:/Users/yiut/Downloads/simpleai-master/simpleai-master/samples/test/eicar1.com.txt"
+virus_path_samples=["C:/Users/yiut/Downloads/simpleai-master/simpleai-master/samples/machine_learning/eicar%d.com.txt" % i for i in range(1,109)]
+virus_path_s=["C:/Users/yiut/Downloads/simpleai-master/simpleai-master/samples/machine_learning/eicar%d.com.txt" % i for i in range(1,109)]
+# signature_path="C:/Users/yiut/Downloads/simpleai-master/simpleai-master/samples/virus_signature.txt"
+letters = []
+
+
+# state=""
+class Letters(object):
+    def __init__(self, virus, text):
+        self.text = text
+        self.virus= virus
+
+class Reader(object):
+    def __init__(self, input_files, accept_criteria):
+        #virus_path_samples=["C:/Users/yiut/Downloads/simpleai-master/simpleai-master/samples/machine_learning/eicar%d.com.txt" % i for i in range(1,109)]
+        self.input_files=virus_path_samples
+        self.accept_criteria = accept_criteria
+
+    @property
+    def __iter__(self):
+        virus="virus"
+        k=0
+        for filename in self.input_files:
+            for text in open(filename):
+                    if self.accept_criteria(k):
+                        #print text
+                        yield Letters(virus, text.lower())
+                    k+=1
+                    if i % 10000 == 0:\
+                            print "\tReaded {} examples".format(i)
+
+
+class LetterCount(Attribute):
+    def __init__(self, letter):
+        self.letter = letter
+        self.name = "Counts for letter {!r}".format(letter)
+        #print self.name
+
+    def __call__(self, sentence):
+        print sentence.text.count(self.letter)
+        return sentence.text.count(self.letter)
+
+
+#def attribute_count_eicar(observation):
+#    return observation.text.count("eicar")
+class VirusClassificationProblem(ClassificationProblem):
+    def __init__(self):
+        super(VirusClassificationProblem, self).__init__()
+        for letter in "abcdefghijklmnopqrstuvwxyz!@#$%^&*(){}:><?|":
+            attribute = LetterCount(letter)
+            #print attribute
+            self.attributes.append(attribute)
+
+    def target(self, sentence):
+        return sentence.virus
+
+
+class AntivirusSearchProblem(SearchProblem):
+    def __init__(self, input_files):
+        self.input_files = input_files
+        # self.accept_criteria=accept_criteria
+        # super(AntirusSearchProblem, self).__init__(initial_state=self.initial)
+        mutate_count = 0
+        i = 0
+        for filename in self.input_files:
+            for text in open(self.input_files):
+                i += 1
+                letters.append(text)
+                str_text = str(text)
+
+        # print letters
+        random_string = ('ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*(){}:"<>?')
+        random_letter1 = random.choice(str_text)
+        random_letter2 = random.choice(random_string)
+        print "Random letter:", (random_letter1, random_letter2)
+        # created random generated Eicar
+        # populate Eicar virus example
+        str_text = str_text.replace(random_letter1, random_letter2)
+        self.initial = str_text
+        mutate_count += 1
+        print "Populated Eicar virus:", str_text
+        # print "# of mutations:", mutate_count
+        state = str_text
+        # print "Current state:", state
+        super(AntivirusSearchProblem, self).__init__(initial_state=self.initial)
+
+    def generate_random_state(self, state):
+        # generate random initial state
+        self.initial = str_text
+        random_string = ('ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*(){}:"<>?')
+        random_letter1 = random.choice(str_text)
+        random_letter2 = random.choice(random_string)
+        print "Random letter:", (random_letter1, random_letter2)
+        # created random generated Eicar
+        # populate Eicar virus example
+        str_text = str_text.replace(random_letter1, random_letter2)
+
+        mutate_count += 1
+        print "Populated Eicar virus:", str_text
+        # print "# of mutations:", mutate_count
+        state = str_text
+        return state
+
+    def c_differnce(self, char1, char2):
+        return abs(ord(char1) - ord(char2))
+
+    def fitness(self, state, result):
+        fitness = 0
+        for index, state_char in enumerate(state):
+            result_char = result[index]
+            fitness += self.c_differnce(state_char, result_char)
+        # print "Fitness:", fitness
+        return fitness
+
+    #    for roulette_selection
+
+    def roulette_select(population, fitnesses, num):
+        """ Roulette selection, implemented according to:
+            <http://stackoverflow.com/questions/177271/roulette
+            -selection-in-genetic-algorithms/177278#177278>
+        """
+        total_fitness = float(sum(fitnesses))
+        rel_fitness = [f / total_fitness for f in fitnesses]
+        # Generate probability intervals for each individual
+        probs = [sum(rel_fitness[:i + 1]) for i in range(len(rel_fitness))]
+        # Draw new population
+        new_population = []
+        for n in xrange(num):
+            r = rand()
+            for (i, individual) in enumerate(population):
+                if r <= probs[i]:
+                    new_population.append(individual)
+                    break
+        return new_population
+
+    def crossover(self, state):
+        halfnum = len(self.initial_state) / 2
+        next_state = self.initial_state[halfnum:] + state[:halfnum]
+        print "Crossover:", next_state
+        return next_state
+
+    def mutate(self, state):
+        mutate_count = 1
+        random_string = ('ABCDEFGHIJKLMNOPQRSTUVWXYZ')
+        str_text = state
+        random_letter1 = random.choice(str_text)
+        random_letter2 = random.choice(random_string)
+        print "Random letter:", (random_letter1, random_letter2)
+        # created random generated Eicar
+        # populate Eicar virus example
+        str_text = str_text.replace(random_letter1, random_letter2)
+        mutate_count += 1
+        next_state = str_text
+        print "Mutatation state:", next_state
+        return next_state
+
+
+# local.genetic(problem, population, mutations, iterations_limit=, view)
+def genetic(problem, pool_size, fitness_treshold, mutation_rate, elite_number, max_generations):
+    # simuation of random generate eicar file for virus classifications
+    # Steps:
+    # 1) Random generate eicar string
+    # 2) evaluate fitness
+    # 3) Mutate population
+    # 4) Crossover population
+    # 5) Enter to add to population
+    # 6) write files
+    rate_mutate = 0
+    for gen_num in range(max_generations):
+        # random generate first generation
+        next_state = problem.mutate(problem.initial_state)
+        rate_mutate += 1
+        filename='eicar%d.com.txt' % rate_mutate
+        file=open(filename, 'w+')
+        print next_state
+        fitness = problem.fitness(problem.initial_state, next_state)
+        print fitness
+        # state=problem.roulette_select(state,int(fitness), 68)
+        state = problem.crossover(next_state)
+        file.write(state)
+        if fitness == fitness_treshold:
+            break
+    print "# of mutations:", rate_mutate
+    file.close()
+    return problem
+
+def tokenize(text):
+    text = text.lower() 
+    return text 
+
+
+def count_words(words):
+    wc = {}
+    for word in words:
+        wc[word] = wc.get(word, 0.0) + 1.0
+    return wc
+
+
+#vocabulary 
+vocab= {}
+# count words
+word_counts = {
+    "EICAR": {},
+    "Others": {}
+ }
+ 
+priors = {
+    "EICAR": 0., 
+    "Others": 0.
+ }
+ 
+docs=[]
+words=""
+category=""
+
+def files_read(input_files):
+    #self.input_files=input_files
+    count=0
+    lettercount=0
+    num_files=len(input_files)
+    print "Number of files:", num_files
+    for x in input_files:
+        f=open(x,'r+')
+        for line in f:
+            sline=str(line)
+            for letter in line:
+                lettercount+=1
+            flag=sline.find("EICAR")
+            if flag!=-1:
+                category = "EICAR"
+                count+=1
+    
+    print "EICAR count:", count
+    print "Letters in all document:", lettercount
+    return count, lettercount
+    
+
+def main():
+    #s = "STANDARD-ANTIVIRUS-TEST-FILE!$H+H*X8O!R%@AR[4\RZX54(R^)7CC)7}$EICAR-"
+    #print count_words(tokenize(s))
+   
+
+    
+    getcontext().prec = 10
+    list = []
+    N = 0
+    for line in open(INITIAL):
+        # print binline
+        list = line
+        N += len(list)
+    print "Initial state(population):", list
+    state = list
+    # number=int(binline)
+    M = min(N / 2, 10000)
+    testindexes = set(random.sample(xrange(N), M))
+    print "Keeping {} examples for testing".format(M)
+
+    print ("Number letter samples:", N)
+    problem = AntivirusSearchProblem(INITIAL)
+    #genetic(problem, pool_size, fitness_treshold, mutation_rate, elite_number, max_generations):
+    print "--------GENETIC ALGORITHM MUTATION----------------"
+    #str_text = genetic(problem, 100, 4, 1, 10, 10 ** 7)
+    num_files=len(virus_path_samples)
+    print "----------END of Genetic Algorithm for classification--------------"
+    process, lettercount=files_read(virus_path_s)
+     # number of documents that x is true (x= EICAR) P(C) = count(C=c)/ doc
+   # prior_eicar = (priors["EICAR"] / sum(priors.values()))
+    
+   # prior_others = (priors["Others"] / sum(priors.values()))
+    
+    log_prob_eicar = 0.0 
+    log_prob_others = 0.0 
+  #  Pc  = priors["EICAR"]/num_files
+  #  print "P(c): ", Pc
+    P=float((process)+1e-5)/(float(num_files)+1e-5*(lettercount+1))
+    print "float((process*5)+1e-5)", float((process*5)+1e-5)
+    print "float(num_files)+1e-5*(lettercount+1)", float(num_files)+1e-5*(lettercount+1)
+    print "P(w/C) Prior Probability EICAR word in document:", P
+    Pn=1-P
+    print "Prior Probabiilty Eicar word not in document:", Pn
+    print "Log probability of EICAR word in document:", math.log(P,10)
+    P2 = (1e-5)/(float(num_files)+1e-5*(lettercount+1))
+    print "Probability unknown virus:",P2
+    print "Log probability of unknown word::", math.log(P2,10)
+    #print "Probability of virus:", P , "Probability not virus:", 1-P
+
+    train=Reader(virus_path_samples, lambda i: i in testindexes)
+    #test=Reader(virus_path_samples, lambda i: i in testindexes)
+    problem=VirusClassificationProblem()
+    
+
+    #ln_ps_pns=Decimal(process)/Decimal(num_files-process)
+    #print "Math log, Ps/Pns=", math.log(ln_ps_pns)
+    #print problem.target(sentence)
+    ln_pv_s=1/process
+    ln_pnv=num_files-process
+   # classifier=NaiveBayestrainer(train,problem)
+    #print "Classification Testing..."
+    #p = precision(classifier, train)
+    #print "Precision Naive Bayes = {}".format(p)
+
+#    print "Training Decision Tree (large data)..."
+#    classifier = DecisionTreeLearner_LargeData(train, problem, minsample=900)
+#    print "Final tree:"
+ #   print tree_to_str(classifier.root)
+ #   print "Testing..."
+ #   p = precision(classifier, test)
+ #   print "Precision Decision Tree = {}".format(p)
+
+
+
+if __name__ == "__main__":
+    main()
